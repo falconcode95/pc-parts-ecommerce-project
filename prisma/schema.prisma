@@ -1,0 +1,136 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  customerId      String   @id @default(uuid()) @map("customer_id")
+  name            String   @db.VarChar(50)
+  surname         String   @db.VarChar(50)
+  email           String   @unique @db.VarChar(50)
+  shippingAddress String?  @map("shipping_address") @db.VarChar(255)
+
+  cartItems       CartItem[]
+  wishlistItems   WishlistItem[]
+  orders          Order[]
+  invoices        Invoice[]
+
+  @@map("customers") 
+}
+
+model Admin {
+  id       Int    @id @default(autoincrement())
+  name     String @db.VarChar(50)
+  email    String @unique @db.VarChar(50)
+  surname         String   @db.VarChar(50)
+  password String @db.Text
+
+  @@map("admins")
+}
+
+model Product {
+  productId String   @id @default(uuid()) @map("product_id")
+  name      String   @db.Text
+  type      String?  @db.VarChar(50) 
+  stock     Int      @default(0)
+  price     Decimal  @db.Decimal(10, 2)
+
+  descriptions ProductDescription[]
+  images       ProductImage[]
+  cartItems    CartItem[]
+  wishlistItems WishlistItem[]
+  orderItems   OrderItem[]
+
+  @@map("products")
+}
+
+
+model ProductDescription {
+  descriptionId String  @id @default(uuid()) @map("description_id")
+  productId     String  @map("product_id")
+  label         String? @db.VarChar(100) 
+  text          String  @db.Text
+
+  product       Product @relation(fields: [productId], references: [productId], onDelete: Cascade)
+
+  @@map("product_descriptions")
+}
+
+model ProductImage {
+  imageFileKey String  @id @map("image_file_key")
+  imageUrl     String  @unique @map("image_url")
+  productId    String  @map("product_id")
+  
+  product      Product @relation(fields: [productId], references: [productId], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+
+model CartItem {
+  customerId String @map("customer_id")
+  productId  String @map("product_id")
+  quantity   Int    @default(1)
+
+  customer   Customer @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [productId], onDelete: Cascade)
+
+  @@id([customerId, productId]) // 🟢 Composite Primary Key (No duplicate rows for same customer+product)
+  @@map("cart_list")
+}
+
+model WishlistItem {
+  customerId String @map("customer_id")
+  productId  String @map("product_id")
+
+  customer   Customer @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [productId], onDelete: Cascade)
+
+  @@id([customerId, productId]) 
+  @@map("wish_list")
+}
+
+model Order {
+  orderId    String   @id @default(uuid()) @map("order_id")
+  customerId String   @map("customer_id")
+  totalPrice Decimal  @db.Decimal(10, 2) @map("total_price") 
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  customer   Customer    @relation(fields: [customerId], references: [customerId])
+  items      OrderItem[] 
+  invoices   Invoice[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  orderItemId String  @id @default(uuid()) @map("order_item_id") 
+  orderId     String  @map("order_id")                          
+  productId   String  @map("product_id")                        
+  quantity    Int
+  price       Decimal @db.Decimal(10, 2)                         
+
+  order       Order   @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [productId])
+
+  @@map("order_items")
+}
+
+model Invoice {
+  invoiceId  String   @id @default(uuid()) @map("invoice_id")
+  orderId    String   @map("order_id")
+  customerId String   @map("customer_id")
+  status     String   @db.VarChar(25) 
+  date       DateTime @default(now())
+
+  order      Order    @relation(fields: [orderId], references: [orderId])
+  customer   Customer @relation(fields: [customerId], references: [customerId])
+
+  @@map("invoice")
+}
