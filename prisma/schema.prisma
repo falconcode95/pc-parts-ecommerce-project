@@ -81,7 +81,7 @@ model CartItem {
   customer   Customer @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
   product    Product  @relation(fields: [productId], references: [productId], onDelete: Cascade)
 
-  @@id([customerId, productId]) // 🟢 Composite Primary Key (No duplicate rows for same customer+product)
+  @@id([customerId, productId]) 
   @@map("cart_list")
 }
 
